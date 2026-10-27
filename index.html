@@ -1,11 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BBL Video Chat</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- PeerJS लाइब्रेरी -->
+    <script src="https://unpkg.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: #f0f2f5; display: flex; justify-content: center; height: 100dvh; overflow: hidden; }
@@ -98,12 +98,10 @@
             padding: 10px; background: #f8f9fa; border-bottom: 1px solid #ddd;
             display: flex; justify-content: center; gap: 10px;
         }
-        #cameraToggleBtn, #endCallBtn {
+        #endCallBtn {
             color: white; border: none; padding: 10px 20px; border-radius: 5px;
-            cursor: pointer; font-weight: bold; font-size: 14px; display: none;
+            cursor: pointer; font-weight: bold; font-size: 14px; display: none; background: #dc3545;
         }
-        #cameraToggleBtn { background: #28a745; }
-        #endCallBtn { background: #dc3545; }
 
         .text-chat-section { display: flex; flex-direction: column; flex-grow: 1; min-height: 0; background: #fff; }
         .chat-window { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
@@ -119,7 +117,7 @@
 </head>
 <body>
 
-    <!-- Login/Signup Container -->
+    <!-- Auth Container -->
     <div class="auth-container" id="authContainer">
         <div class="auth-header">
             <h1>📹 BBL Video Chat</h1>
@@ -137,7 +135,7 @@
                 <input type="password" id="loginPassword" placeholder="अपना पासवर्ड डालें">
             </div>
             <div id="loginMsg" class="msg-box"></div>
-            <button class="auth-btn" id="loginBtn">लॉगिन करें</button>
+            <button class="auth-btn" id="loginBtn" onclick="handleLogin()">लॉगिन करें</button>
             <div class="auth-toggle">
                 खाता नहीं है? <a onclick="toggleAuth('signup')">यहाँ साइनअप करें</a>
             </div>
@@ -150,420 +148,42 @@
                 <input type="text" id="signupName" placeholder="अपना नाम डालें" maxlength="50">
             </div>
             <div class="form-group">
-                <label>फोन नंबर (User ID)</label>
-                <input type="tel" id="signupPhone" placeholder="जैसे: 9876543210" maxlength="15">
+                <label>फोन नंबर</label>
+                <input type="tel" id="signupPhone" placeholder="अपना फोन नंबर दर्ज करें" maxlength="15">
             </div>
             <div class="form-group">
-                <label>पासवर्ड (कम से कम 6 अक्षर)</label>
-                <input type="password" id="signupPassword" placeholder="मजबूत पासवर्ड बनाएं" minlength="6">
-            </div>
-            <div class="form-group">
-                <label>पासवर्ड दोबारा डालें</label>
-                <input type="password" id="signupConfirmPassword" placeholder="पासवर्ड की पुष्टि करें">
+                <label>पासवर्ड बनायें</label>
+                <input type="password" id="signupPassword" placeholder="एक मजबूत पासवर्ड चुनें">
             </div>
             <div id="signupMsg" class="msg-box"></div>
-            <button class="auth-btn" id="signupBtn">खाता बनाएं</button>
+            <button class="auth-btn" id="signupBtn" onclick="handleSignup()">साइनअप करें</button>
             <div class="auth-toggle">
                 पहले से खाता है? <a onclick="toggleAuth('login')">यहाँ लॉगिन करें</a>
             </div>
         </div>
     </div>
 
-    <!-- Chat Container -->
+    <!-- Main Chat Interface -->
     <div class="chat-container" id="chatContainer">
         <div class="user-header">
             <div class="user-info">
-                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-avatar" id="headerAvatar">S</div>
                 <div class="user-details">
-                    <div class="user-name" id="userName">User</div>
-                    <div class="user-phone" id="userPhone">-</div>
+                    <span class="user-name" id="headerName">Shyambihari Khangar</span>
+                    <span class="user-phone" id="headerPhone">6261577705</span>
                 </div>
             </div>
-            <button class="logout-btn" id="logoutBtn">लॉगआउट</button>
+            <button class="logout-btn" onclick="handleLogout()">लॉगआउट</button>
         </div>
 
         <div class="connection-panel">
             <div class="input-group">
                 <label>किससे जुड़ना है (उनका फोन नंबर):</label>
-                <input type="tel" id="targetId" placeholder="जैसे: 9876543210" maxlength="15">
+                <input type="text" id="remotePeerIdInput" placeholder="सामने वाले का नंबर डालें">
             </div>
-            <button id="connectBtn" class="btn-primary">कैमरा चालू करें और कनेक्ट हों</button>
-            <div id="statusText" class="status-text">तैयार: कनेक्ट करने के लिए बटन दबाएं</div>
+            <button class="btn-primary" id="callActionBtn" onclick="startCallProcess()">पुनः प्रयास करें / कॉल करें</button>
+            <div class="status-text" id="statusMessage">कैमरा/माइक की अनुमति मांगी जा रही है...</div>
         </div>
 
         <div class="video-section">
-            <div class="video-box local-box">
-                <video id="localVideo" autoplay playsinline muted></video>
-                <div class="video-label">आप</div>
-            </div>
             <div class="video-box remote-box">
-                <video id="remoteVideo" autoplay playsinline></video>
-                <div class="video-label">सामने वाला</div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <button id="cameraToggleBtn">कैमरा/माइक बंद करें</button>
-            <button id="endCallBtn">कॉल काटें</button>
-        </div>
-
-        <div class="text-chat-section">
-            <div class="chat-window" id="chatWindow">
-                <div class="message system">सिस्टम: कनेक्ट होने के बाद यहाँ चैट दिखाई देगी।</div>
-            </div>
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="संदेश टाइप करें..." disabled>
-                <button id="sendBtn" disabled>भेजें</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // ========== LOCAL DATABASE (localStorage) ==========
-        const DB = {
-            getUsers() {
-                return JSON.parse(localStorage.getItem('bbl_users') || '{}');
-            },
-            saveUsers(users) {
-                localStorage.setItem('bbl_users', JSON.stringify(users));
-            },
-            signup(name, phone, password) {
-                const users = this.getUsers();
-                if (users[phone]) {
-                    return { success: false, message: 'यह फोन नंबर पहले से रजिस्टर्ड है। लॉगिन करें।' };
-                }
-                users[phone] = {
-                    name: name,
-                    phone: phone,
-                    password: password, // लोकल टेस्ट के लिए (Appwrite में हैश होगा)
-                    createdAt: new Date().toISOString()
-                };
-                this.saveUsers(users);
-                return { success: true, message: 'खाता बन गया! लॉगिन हो रहा है...' };
-            },
-            login(phone, password) {
-                const users = this.getUsers();
-                if (!users[phone]) {
-                    return { success: false, message: 'यह फोन नंबर रजिस्टर्ड नहीं है।' };
-                }
-                if (users[phone].password !== password) {
-                    return { success: false, message: 'गलत पासवर्ड।' };
-                }
-                return { success: true, user: users[phone] };
-            }
-        };
-
-        // ========== SESSION MANAGEMENT ==========
-        const SESSION = {
-            save(user) {
-                localStorage.setItem('bbl_session', JSON.stringify(user));
-            },
-            get() {
-                const data = localStorage.getItem('bbl_session');
-                return data ? JSON.parse(data) : null;
-            },
-            clear() {
-                localStorage.removeItem('bbl_session');
-            }
-        };
-
-        // ========== GLOBAL VARIABLES ==========
-        let currentUser = null;
-        let peer = null;
-        let localStream = null;
-        let currentCall = null;
-        let dataConn = null;
-        let isCameraOn = true;
-
-        // ========== DOM ELEMENTS ==========
-        const authContainer = document.getElementById('authContainer');
-        const chatContainer = document.getElementById('chatContainer');
-        const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
-        const loginMsg = document.getElementById('loginMsg');
-        const signupMsg = document.getElementById('signupMsg');
-        const chatWindow = document.getElementById('chatWindow');
-
-        // ========== AUTH FUNCTIONS ==========
-        function toggleAuth(type) {
-            if (type === 'signup') {
-                loginForm.style.display = 'none';
-                signupForm.style.display = 'flex';
-                loginMsg.className = 'msg-box'; loginMsg.innerText = '';
-            } else {
-                signupForm.style.display = 'none';
-                loginForm.style.display = 'flex';
-                signupMsg.className = 'msg-box'; signupMsg.innerText = '';
-            }
-        }
-
-        // Signup
-        document.getElementById('signupBtn').addEventListener('click', () => {
-            const name = document.getElementById('signupName').value.trim();
-            const phone = document.getElementById('signupPhone').value.trim();
-            const password = document.getElementById('signupPassword').value;
-            const confirmPassword = document.getElementById('signupConfirmPassword').value;
-
-            signupMsg.className = 'msg-box';
-            signupMsg.innerText = '';
-
-            if (!name || !phone || !password) {
-                signupMsg.className = 'msg-box error';
-                signupMsg.innerText = 'कृपया सभी फ़ील्ड भरें';
-                return;
-            }
-            if (password.length < 6) {
-                signupMsg.className = 'msg-box error';
-                signupMsg.innerText = 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए';
-                return;
-            }
-            if (password !== confirmPassword) {
-                signupMsg.className = 'msg-box error';
-                signupMsg.innerText = 'पासवर्ड मेल नहीं खा रहा';
-                return;
-            }
-
-            const result = DB.signup(name, phone, password);
-            if (result.success) {
-                signupMsg.className = 'msg-box success';
-                signupMsg.innerText = result.message;
-                setTimeout(() => {
-                    SESSION.save({ name, phone });
-                    showChatInterface();
-                }, 800);
-            } else {
-                signupMsg.className = 'msg-box error';
-                signupMsg.innerText = result.message;
-            }
-        });
-
-        // Login
-        document.getElementById('loginBtn').addEventListener('click', () => {
-            const phone = document.getElementById('loginPhone').value.trim();
-            const password = document.getElementById('loginPassword').value;
-
-            loginMsg.className = 'msg-box';
-            loginMsg.innerText = '';
-
-            if (!phone || !password) {
-                loginMsg.className = 'msg-box error';
-                loginMsg.innerText = 'कृपया फोन नंबर और पासवर्ड डालें';
-                return;
-            }
-
-            const result = DB.login(phone, password);
-            if (result.success) {
-                SESSION.save(result.user);
-                showChatInterface();
-            } else {
-                loginMsg.className = 'msg-box error';
-                loginMsg.innerText = result.message;
-            }
-        });
-
-        // Logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            if (currentCall || peer) endCall();
-            SESSION.clear();
-            currentUser = null;
-            showAuthInterface();
-        });
-
-        // ========== UI SWITCHING ==========
-        function showChatInterface() {
-            currentUser = SESSION.get();
-            if (!currentUser) return;
-            
-            document.getElementById('userName').innerText = currentUser.name;
-            document.getElementById('userPhone').innerText = currentUser.phone;
-            document.getElementById('userAvatar').innerText = currentUser.name.charAt(0).toUpperCase();
-            
-            authContainer.style.display = 'none';
-            chatContainer.style.display = 'flex';
-        }
-
-        function showAuthInterface() {
-            chatContainer.style.display = 'none';
-            authContainer.style.display = 'flex';
-            loginForm.style.display = 'flex';
-            signupForm.style.display = 'none';
-            loginMsg.className = 'msg-box'; loginMsg.innerText = '';
-            signupMsg.className = 'msg-box'; signupMsg.innerText = '';
-        }
-
-        // Check session on load
-        window.addEventListener('DOMContentLoaded', () => {
-            const session = SESSION.get();
-            if (session) {
-                showChatInterface();
-            }
-        });
-
-        // ========== CHAT FUNCTIONS ==========
-        function addMessage(text, type) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `message ${type}`;
-            msgDiv.innerText = text;
-            chatWindow.appendChild(msgDiv);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-
-        document.getElementById('connectBtn').addEventListener('click', async () => {
-            const targetId = document.getElementById('targetId').value.trim().toLowerCase().replace(/\s/g, '');
-            const myId = currentUser ? currentUser.phone.toLowerCase() : '';
-
-            if (!targetId) {
-                alert('कृपया जिससे जुड़ना है उनका फोन नंबर डालें');
-                return;
-            }
-            if (myId === targetId) {
-                alert('आप अपने ही ID पर कॉल नहीं कर सकते');
-                return;
-            }
-
-            document.getElementById('connectBtn').disabled = true;
-            document.getElementById('connectBtn').innerText = 'कनेक्ट हो रहा है...';
-            document.getElementById('statusText').innerText = 'कैमरा/माइक की अनुमति मांगी जा रही है...';
-
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user" }, 
-                    audio: true 
-                });
-                document.getElementById('localVideo').srcObject = localStream;
-                isCameraOn = true;
-
-                peer = new Peer(myId, {
-                    debug: 2,
-                    config: {
-                        iceServers: [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:stun1.l.google.com:19302' }
-                        ]
-                    }
-                });
-
-                peer.on('open', (id) => {
-                    document.getElementById('statusText').innerText = `✅ आप ऑनलाइन हैं (${id})`;
-                    document.getElementById('statusText').classList.add('connected');
-                    
-                    if (targetId) {
-                        initiateCall(targetId);
-                    } else {
-                        addMessage('आप ऑनलाइन हैं। कोई भी आपको इस ID से कॉल कर सकता है।', 'system');
-                    }
-                });
-
-                peer.on('error', (err) => {
-                    console.error('Peer Error:', err);
-                    if (err.type === 'unavailable-id') {
-                        alert('यह ID पहले से उपयोग में है। दूसरा फोन नंबर डालें।');
-                    } else {
-                        alert('कनेक्शन एरर: ' + err.type);
-                    }
-                    document.getElementById('connectBtn').disabled = false;
-                    document.getElementById('connectBtn').innerText = 'पुनः प्रयास करें';
-                });
-
-                peer.on('call', (call) => {
-                    addMessage(`📞 ${call.peer} आपको वीडियो कॉल कर रहा है...`, 'system');
-                    call.answer(localStream);
-                    currentCall = call;
-                    setupCallEvents(call);
-                });
-
-                peer.on('connection', (conn) => {
-                    dataConn = conn;
-                    setupDataEvents(conn);
-                });
-
-            } catch (error) {
-                console.error('Media Error:', error);
-                alert('कैमरा/माइक चालू करने में विफल। ब्राउज़र सेटिंग्स में Allow करें।');
-                document.getElementById('connectBtn').disabled = false;
-                document.getElementById('connectBtn').innerText = 'कैमरा चालू करें और कनेक्ट हों';
-                document.getElementById('statusText').innerText = 'त्रुटि: अनुमति नहीं मिली।';
-            }
-        });
-
-        function initiateCall(targetId) {
-            document.getElementById('statusText').innerText = `📞 ${targetId} को कॉल किया जा रहा है...`;
-            addMessage(`${targetId} को कॉल किया जा रहा है...`, 'system');
-            
-            currentCall = peer.call(targetId, localStream);
-            setupCallEvents(currentCall);
-            dataConn = peer.connect(targetId);
-            setupDataEvents(dataConn);
-        }
-
-        function setupCallEvents(call) {
-            call.on('stream', (remoteStream) => {
-                document.getElementById('remoteVideo').srcObject = remoteStream;
-                document.getElementById('statusText').innerText = `✅ कनेक्शन सफल: ${call.peer}`;
-                addMessage('वीडियो कनेक्शन स्थापित हो गया है', 'system');
-                document.getElementById('messageInput').disabled = false;
-                document.getElementById('sendBtn').disabled = false;
-                document.getElementById('endCallBtn').style.display = 'inline-block';
-                document.getElementById('cameraToggleBtn').style.display = 'inline-block';
-            });
-            call.on('close', () => endCall());
-            call.on('error', (err) => addMessage('कॉल में त्रुटि हुई', 'system'));
-        }
-
-        function setupDataEvents(conn) {
-            conn.on('open', () => addMessage('💬 चैट कनेक्शन तैयार है', 'system'));
-            conn.on('data', (data) => addMessage(data, 'stranger'));
-            conn.on('close', () => addMessage('चैट कनेक्शन बंद हो गया', 'system'));
-        }
-
-        function sendMessage() {
-            const text = document.getElementById('messageInput').value.trim();
-            if (!text) return;
-            if (dataConn && dataConn.open) {
-                dataConn.send(text);
-                addMessage(text, 'you');
-                document.getElementById('messageInput').value = '';
-            } else {
-                alert('चैट कनेक्शन तैयार नहीं है');
-            }
-        }
-
-        document.getElementById('sendBtn').addEventListener('click', sendMessage);
-        document.getElementById('messageInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
-
-        document.getElementById('cameraToggleBtn').addEventListener('click', () => {
-            if (!localStream) return;
-            isCameraOn = !isCameraOn;
-            localStream.getTracks().forEach(track => { track.enabled = isCameraOn; });
-            document.getElementById('cameraToggleBtn').innerText = isCameraOn ? 'कैमरा/माइक बंद करें' : 'कैमरा/माइक चालू करें';
-        });
-
-        document.getElementById('endCallBtn').addEventListener('click', endCall);
-
-        function endCall() {
-            if (currentCall) { currentCall.close(); currentCall = null; }
-            if (dataConn) { dataConn.close(); dataConn = null; }
-            if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
-            if (peer) { peer.destroy(); peer = null; }
-            
-            document.getElementById('localVideo').srcObject = null;
-            document.getElementById('remoteVideo').srcObject = null;
-            document.getElementById('messageInput').disabled = true;
-            document.getElementById('sendBtn').disabled = true;
-            document.getElementById('connectBtn').disabled = false;
-            document.getElementById('connectBtn').innerText = 'कैमरा चालू करें और कनेक्ट हों';
-            document.getElementById('endCallBtn').style.display = 'none';
-            document.getElementById('cameraToggleBtn').style.display = 'none';
-            document.getElementById('statusText').innerText = 'कॉल समाप्त हो गई';
-            document.getElementById('statusText').classList.remove('connected');
-            addMessage('कॉल समाप्त हो गई', 'system');
-        }
-
-        document.getElementById('messageInput').addEventListener('focus', () => {
-            setTimeout(() => { document.getElementById('messageInput').scrollIntoView({ behavior: 'smooth', block: 'end' }); }, 300);
-        });
-    </script>
-</body>
-</html>
